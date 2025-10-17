@@ -11,11 +11,8 @@
 
 #define RX_PIN GPIO_NUM_3
 #define TX_PIN GPIO_NUM_1
-
 #define BAUD_RATE_UART 115200
-
 #define UART_PORT UART_NUM_0
-
 #define BUF_SIZE 1024
 
 void vTaskUART(void *pvArgs);
@@ -31,6 +28,7 @@ void app_main(void)
 
 void vTaskUART(void *pvArgs)
 {
+    const char *TAG = "[UART_TASK]";
     // Configure a temporary buffer for the incoming data
     uint8_t *data = (uint8_t *)malloc(BUF_SIZE);
     uint16_t idx = 0;
@@ -47,9 +45,18 @@ void vTaskUART(void *pvArgs)
             if (data[idx - 1] == '\n' || data[idx - 1] == '\r')
             {
                 data[idx] = '\0';
-                ESP_LOGI("[UART_TASK]", "Recv str: %s", (char *)data);
+                ESP_LOGI(TAG, "Recv str: %s", (char *)data);
 
                 idx = 0;
+
+                uint8_t addr = (data[0] <= '9') ? ((data[0]-'0')<<4) : ((data[0]-55)<<4);
+                addr |= ((data[1] <= '9') ? ((data[1]-'0')) : ((data[1]-55)));
+                ESP_LOGI(TAG, "addr: %X", addr);
+
+                uint8_t func = (data[2] <= '9') ? ((data[2]-'0')<<4) : ((data[2]-55)<<4);
+                func |= ((data[3] <= '9') ? ((data[3]-'0')) : ((data[3]-55)));
+
+                ESP_LOGI(TAG, "func: %X", func);
             }
         }
     }
