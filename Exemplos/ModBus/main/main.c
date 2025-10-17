@@ -15,9 +15,17 @@
 #define UART_PORT UART_NUM_0
 #define BUF_SIZE 1024
 
+typedef struct ModBusData
+{
+    uint8_t addr;
+    uint8_t func;
+} ModBusData_t;
+
 void vTaskUART(void *pvArgs);
 
 esp_err_t UART_config(void);
+
+void decodeModBus(ModBusData_t *modbusLine, uint8_t *data);
 
 void app_main(void)
 {
@@ -32,6 +40,12 @@ void vTaskUART(void *pvArgs)
     // Configure a temporary buffer for the incoming data
     uint8_t *data = (uint8_t *)malloc(BUF_SIZE);
     uint16_t idx = 0;
+
+    ModBusData_t modbusLine = {
+        .addr = 0,
+        .func = 0,
+    };
+
     while (1)
     {
         // Read data from the UART
@@ -39,8 +53,8 @@ void vTaskUART(void *pvArgs)
         // Write data back to the UART
         uart_write_bytes(UART_PORT, &data[idx], len);
         if (len)
-        { 
-            
+        {
+
             idx++;
             if (data[idx - 1] == '\n' || data[idx - 1] == '\r')
             {
@@ -49,14 +63,10 @@ void vTaskUART(void *pvArgs)
 
                 idx = 0;
 
-                uint8_t addr = (data[0] <= '9') ? ((data[0]-'0')<<4) : ((data[0]-55)<<4);
-                addr |= ((data[1] <= '9') ? ((data[1]-'0')) : ((data[1]-55)));
-                ESP_LOGI(TAG, "addr: %X", addr);
+                decodeModBus(&modbusLine, data);
 
-                uint8_t func = (data[2] <= '9') ? ((data[2]-'0')<<4) : ((data[2]-55)<<4);
-                func |= ((data[3] <= '9') ? ((data[3]-'0')) : ((data[3]-55)));
-
-                ESP_LOGI(TAG, "func: %X", func);
+                ESP_LOGI(TAG, "addr: %X", modbusLine.addr);
+                ESP_LOGI(TAG, "func: %X", modbusLine.func);
             }
         }
     }
@@ -81,4 +91,14 @@ esp_err_t UART_config(void)
     ESP_ERROR_CHECK(uart_set_pin(UART_PORT, TX_PIN, RX_PIN, -1, -1));
 
     return ESP_OK;
+}
+
+void decodeModBus(ModBusData_t *modbusLine, uint8_t *data)
+{
+
+    modbusLine->addr = (data[0] <= '9') ? ((data[0] - '0') << 4) : ((data[0] - 55) << 4);
+    modbusLine->addr |= ((data[1] <= '9') ? ((data[1] - '0') & 0x0F) : ((data[1] - 55) & 0x0F));
+
+    modbusLine->func = (data[2] <= '9') ? ((data[2] - '0') << 4) : ((data[2] - 55) << 4);
+    modbusLine->func |= ((data[3] <= '9') ? ((data[3] - '0') & 0x0F) : ((data[3] - 55) & 0x0F));
 }
