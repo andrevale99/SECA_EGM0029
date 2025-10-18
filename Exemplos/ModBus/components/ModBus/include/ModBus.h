@@ -1,6 +1,8 @@
 #ifndef MODBUS_H
 #define MODBUS_H
 
+#include <string.h>
+
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -13,6 +15,7 @@ typedef struct ModBusData
 {
     uint8_t addr;
     uint8_t func;
+    uint8_t data[256];
 } ModBusData_t;
 
 /// @brief Configuração do Modibus Utilizando o protocolo UART
@@ -29,7 +32,7 @@ esp_err_t MODBUS_config(int RXpin, int TXpin, int baudRate,
 /// @brief Decodifica o Prorocolo ModBus a partir dos dados recebidos
 /// @param modbusLine Estrutura de dados ModBus a ser preenchida
 /// @param data dados recebidos via UART
-void decodeModBus(ModBusData_t *modbusLine, uint8_t *data);
+void decodeModBus(ModBusData_t *modbusLine, uint8_t *data, uint16_t len);
 
 /// @brief CRC de 16 bits
 /// @param data dados para cálculo do CRC

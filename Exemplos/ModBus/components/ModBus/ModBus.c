@@ -3,6 +3,7 @@
 
 static uart_port_t uartPortGlobal;
 static int bufferSize = 0;
+static const char *TAG = "[MODBUS_TASK]";
 
 esp_err_t MODBUS_config(int RXpin, int TXpin, int baudRate, uart_port_t uartPort, int bufSize)
 {
@@ -24,12 +25,12 @@ esp_err_t MODBUS_config(int RXpin, int TXpin, int baudRate, uart_port_t uartPort
     ESP_ERROR_CHECK(uart_param_config(uartPort, &uart_config));
     ESP_ERROR_CHECK(uart_set_pin(uartPort, TXpin, RXpin, -1, -1));
 
-    xTaskCreate(VTaskModBus, "TASK UART", 2048, NULL, 1, NULL);
+    xTaskCreate(VTaskModBus, "TASK UART", 4096, NULL, 1, NULL);
 
     return ESP_OK;
 }
 
-void decodeModBus(ModBusData_t *modbusLine, uint8_t *data)
+void decodeModBus(ModBusData_t *modbusLine, uint8_t *data, uint16_t len)
 {
 
     modbusLine->addr = (data[0] <= '9') ? ((data[0] - '0') << 4) : ((data[0] - 55) << 4);
@@ -37,6 +38,14 @@ void decodeModBus(ModBusData_t *modbusLine, uint8_t *data)
 
     modbusLine->func = (data[2] <= '9') ? ((data[2] - '0') << 4) : ((data[2] - 55) << 4);
     modbusLine->func |= ((data[3] <= '9') ? ((data[3] - '0') & 0x0F) : ((data[3] - 55) & 0x0F));
+
+    ESP_LOGI(TAG, "addr: %X", modbusLine->addr);
+    ESP_LOGI(TAG, "func: %X", modbusLine->func);
+
+    for (uint8_t i = 4; i < len - 2; i+=2)
+    {
+        // FAzer lógica para coletar os dados
+    }
 }
 
 uint16_t crc16_ccitt(const uint8_t *data, size_t len)
@@ -59,7 +68,7 @@ uint16_t crc16_ccitt(const uint8_t *data, size_t len)
 
 void VTaskModBus(void *pvArgs)
 {
-    const char *TAG = "[UART_TASK]";
+
     // Configure a temporary buffer for the incoming data
     uint8_t *data = (uint8_t *)malloc(bufferSize);
     uint16_t idx = 0;
@@ -86,10 +95,7 @@ void VTaskModBus(void *pvArgs)
 
                 idx = 0;
 
-                decodeModBus(&modbusLine, data);
-
-                ESP_LOGI(TAG, "addr: %X", modbusLine.addr);
-                ESP_LOGI(TAG, "func: %X", modbusLine.func);
+                decodeModBus(&modbusLine, data, strlen((char *)data));
             }
         }
     }
