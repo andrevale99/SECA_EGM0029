@@ -1,0 +1,11 @@
+menu ESP32_STATION_EXEMPLO
+
+    config WIFI_SSID
+        string "WiFi SSID"
+        default "your_ssid"
+
+    config WIFI_PASSWORD
+        string "WiFi Password"
+        default "your_password"
+    
+endmenu
